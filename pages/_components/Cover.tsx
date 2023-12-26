@@ -2,7 +2,7 @@ import { Typography, Card } from "@mui/material";
 import { Album } from "@mui/icons-material";
 import { Song } from "@/utils/types";
 
-export default function Cover({ currentSong }: { currentSong: Song }) {
+export default function Cover({ currentSong }: { currentSong: Song | null }) {
   return (
     <>
       <Card

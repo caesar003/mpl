@@ -1,4 +1,3 @@
-import Divider from "@mui/material/Divider";
 import List from "@mui/material/List";
 import ListItem from "@mui/material/ListItem";
 import ListItemButton from "@mui/material/ListItemButton";
@@ -8,26 +7,40 @@ import MusicNoteOutlinedIcon from "@mui/icons-material/MusicNoteOutlined";
 import Avatar from "@mui/material/Avatar";
 import ListItemAvatar from "@mui/material/ListItemAvatar";
 import { Song } from "@/utils/types";
+import { TextField } from "@mui/material";
 
 interface PropInterface {
-  musics: Song[];
-  currentSong: Song;
-  navigateSong: (index: number) => void;
+  songs: Song[];
+  currentSong: Song | null;
+  navigateSong: Function;
+  filterSong: Function;
 }
 
 export default function Library(props: PropInterface) {
-  const { musics, currentSong, navigateSong } = props;
+  const { songs, currentSong, navigateSong, filterSong } = props;
 
   return (
-    <div>
-      <Toolbar />
-      <Divider />
+    <div className="relative">
+      <div className="sticky top-0 border border-b w-full bg-white z-20">
+        <Toolbar className="w-full p-0">
+          <TextField
+            onInput={(e: React.ChangeEvent<HTMLInputElement>) => {
+              const query: string = e.target.value;
+              filterSong(query);
+            }}
+            className="w-full"
+            placeholder="Search..."
+            type="search"
+            InputProps={{ autoComplete: "new-password" }}
+          />
+        </Toolbar>
+      </div>
       <List>
-        {musics.map((song, index) => {
+        {songs?.map((song, index: number) => {
           return (
-            <ListItem key={index}>
+            <ListItem key={song.id}>
               <ListItemButton
-                selected={song.name === currentSong.name}
+                selected={song?.name === currentSong?.name}
                 onClick={() => navigateSong(index)}
               >
                 <ListItemAvatar>
@@ -35,7 +48,7 @@ export default function Library(props: PropInterface) {
                     <MusicNoteOutlinedIcon />
                   </Avatar>
                 </ListItemAvatar>
-                <ListItemText primary={song.singer} secondary={song.title} />
+                <ListItemText primary={song?.singer} secondary={song?.title} />
               </ListItemButton>
             </ListItem>
           );

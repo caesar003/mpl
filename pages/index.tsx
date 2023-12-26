@@ -1,39 +1,50 @@
+import { getMetaData } from "@/helpers";
 import { useEffect, useRef, useState } from "react";
 import Box from "@mui/material/Box";
 import CssBaseline from "@mui/material/CssBaseline";
 import Drawer from "@mui/material/Drawer";
 import Button from "@mui/material/Button";
-import { Song } from "@/utils/types";
-import { songs } from "@/helpers/data";
 import LibraryMusic from "@mui/icons-material/LibraryMusic";
 import AudioControl from "./_components/AudioControl";
 import Cover from "./_components/Cover";
 import Timer from "./_components/Timer";
 import Library from "./_components/Library";
-
+import { Song, Repeat } from "@/utils/types";
+import { songs as orgSongs } from "@/helpers/songs";
+const apiUrl = "http://localhost:3004";
 const drawerWidth = 320;
 
-type Repeat = "on" | "off" | "one";
-
-const shuffleArray = (array: Song[]) => {
-  for (let i = 0; i < array.length - 1; i++) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [array[i], array[j]] = [array[j], array[i]];
-  }
-
-  return array;
-};
-
 export default function Home() {
-  const [mobileOpen, setMobileOpen] = useState(false);
-
-  const [musics, setMusics] = useState<Song[]>(songs);
-  const [currentSong, setCurrentSong] = useState<Song>(songs[0]);
+  const [mobileOpen, setMobileOpen] = useState<boolean>(false);
+  const [songs, setSongs] = useState<Song[]>([]);
+  const [library, setLibrary] = useState<Song[]>([]);
+  const [shuffledIndices, setShuffledIndices] = useState<number[]>([]);
+  const [currentSong, setCurrentSong] = useState<Song | null>(null);
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
-  const [currentProgress, setCurrentProgress] = useState(0);
+  const [currentProgress, setCurrentProgress] = useState<number>(0);
   const [shuffleOn, setShuffleOn] = useState<boolean>(false);
   const [repeat, setRepeat] = useState<Repeat>("on");
   const audioEl = useRef<HTMLAudioElement | null>(null);
+
+  const filterSong = (query: string) => {
+    if (!query) {
+      setLibrary([...songs]);
+    } else {
+      const filteredSongs = [...songs].filter((items) =>
+        items.name.toLowerCase().includes(query.toLowerCase()),
+      );
+      setLibrary(filteredSongs);
+    }
+  };
+
+  const generateShuffledIndices = () => {
+    const idc = Array.from({ length: songs.length }, (_, index) => index);
+    for (let i = idc.length - 1; i > 0; i--) {
+      const j: number = Math.floor(Math.random() * (i + 1));
+      [idc[i], idc[j]] = [idc[j], idc[i]];
+    }
+    return idc;
+  };
 
   const toggleRepeat = () => {
     switch (repeat) {
@@ -49,16 +60,33 @@ export default function Home() {
     }
   };
 
-  const shuffle = () => setShuffleOn((state) => !state);
+  const shuffle = () => {
+    setShuffleOn((state) => !state);
+
+    if (!shuffleOn) {
+      const newShuffledIndices = generateShuffledIndices();
+      setShuffledIndices(newShuffledIndices);
+    } else {
+      setShuffledIndices([]);
+    }
+  };
+
   const play = () => setIsPlaying((state) => !state);
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
   };
 
   const goNext = () => {
-    const idx = songs.findIndex((item) => item.name === currentSong.name);
-    const prevIndex = (idx - 1 + songs.length) % songs.length;
-    navigateSong(prevIndex);
+    const idx: number = songs.findIndex(
+      (item) => item.name === currentSong?.name,
+    );
+    if (shuffleOn) {
+      const ni: number = (idx + 1) % shuffledIndices.length;
+      navigateSong(shuffledIndices[ni]);
+    } else {
+      const ni: number = (idx + 1) % songs.length;
+      navigateSong(ni);
+    }
   };
 
   const navigateSong = (index: number) => {
@@ -69,9 +97,16 @@ export default function Home() {
   };
 
   const goPrev = () => {
-    const idx = songs.findIndex((item) => item.name === currentSong.name);
-    const nextIndex = (idx + 1) % songs.length;
-    navigateSong(nextIndex);
+    const idx: number = songs.findIndex(
+      (item) => item.name === currentSong?.name,
+    );
+    if (shuffleOn) {
+      const pi = (idx - 1 + shuffledIndices.length) % shuffledIndices.length;
+      navigateSong(shuffledIndices[pi]);
+    } else {
+      const pi = (idx - 1 + songs.length) % songs.length;
+      navigateSong(pi);
+    }
   };
 
   const stop = () => {
@@ -84,18 +119,18 @@ export default function Home() {
   const onSeek = (e: Event, v: number | number[]) => {
     if (typeof v !== "number") return;
     if (!audioEl.current) return;
-    const _currentTime = (currentSong.duration * v) / 100;
+    const _currentTime = (currentSong?.duration! * v) / 100;
     audioEl.current.currentTime = _currentTime;
   };
 
   const onPlaying = () => {
     if (!audioEl.current) return;
-    const _duration = audioEl.current.duration;
-    const _currentTime = audioEl.current.currentTime;
-    const _progress = (_currentTime / _duration) * 100;
+    const _duration: number = audioEl.current.duration;
+    const _currentTime: number = audioEl.current.currentTime;
+    const _progress: number = (_currentTime / _duration) * 100;
     setCurrentProgress(_progress);
     setCurrentSong({
-      ...currentSong,
+      ...currentSong!,
       duration: _duration,
       progress: _progress,
     });
@@ -116,18 +151,37 @@ export default function Home() {
   };
 
   useEffect(() => {
-    setMusics(songs.slice(0, 50));
+    const _songs: Song[] = orgSongs.map((song) => {
+      return {
+        id: btoa(encodeURIComponent(song)),
+        name: song,
+        path: `${apiUrl}/audio/${encodeURIComponent(song)}`,
+        ...getMetaData(song),
+        duration: 0,
+        progress: 0,
+      };
+    });
+
+    setSongs(_songs);
+    setLibrary(_songs);
   }, []);
 
   useEffect(() => {
     if (!audioEl.current) return;
     if (isPlaying) {
       audioEl.current.play();
-      console.log(audioEl);
     } else {
       audioEl.current.pause();
     }
   }, [isPlaying, currentSong]);
+
+  useEffect(() => {
+    if (songs.length) {
+      setCurrentSong(songs[0]);
+    }
+  }, [songs]);
+
+  useEffect(() => { }, [currentSong]);
 
   return (
     <Box sx={{ display: "flex", overflow: "hidden", height: "100vh" }}>
@@ -153,7 +207,8 @@ export default function Home() {
           }}
         >
           <Library
-            musics={musics}
+            filterSong={filterSong}
+            songs={library}
             currentSong={currentSong}
             navigateSong={navigateSong}
           />
@@ -170,7 +225,8 @@ export default function Home() {
           open
         >
           <Library
-            musics={musics}
+            filterSong={filterSong}
+            songs={library}
             currentSong={currentSong}
             navigateSong={navigateSong}
           />
@@ -198,7 +254,7 @@ export default function Home() {
             </div>
 
             <audio
-              src={`http://localhost:3004${currentSong.path}`}
+              src={currentSong?.path}
               ref={audioEl}
               onTimeUpdate={onPlaying}
               onEnded={onFinishPlaying}

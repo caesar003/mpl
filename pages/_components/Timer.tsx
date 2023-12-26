@@ -4,10 +4,10 @@ import { formatTime } from "@/helpers";
 import { Song } from "@/utils/types";
 
 interface PropInterface {
-  onSeek: (e: Event, v: number | number[]) => void;
+  onSeek: Function;
   currentProgress: number;
   audioEl: MutableRefObject<HTMLAudioElement | null>;
-  currentSong: Song;
+  currentSong: Song | null;
 }
 
 export default function Timer(props: PropInterface) {
@@ -16,7 +16,7 @@ export default function Timer(props: PropInterface) {
     <>
       <div className="w-full flex flex-col gap-1">
         <Slider
-          onChange={onSeek}
+          onChange={(e: Event, v: number | number[]) => onSeek(e, v)}
           value={currentProgress || 0}
           color="warning"
           size="small"

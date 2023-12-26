@@ -1,4 +1,5 @@
 export interface Song {
+  id: string;
   name: string;
   path: string;
   title: string;
@@ -7,17 +8,9 @@ export interface Song {
   progress?: number;
 }
 
-export interface SongResponse {
-  name: string;
-  path: string;
-}
-
 export interface MetaData {
   singer: string;
   title: string;
 }
 
-export interface AudioElementInterface {
-  src: string;
-  onSongEnd: () => void;
-}
+export type Repeat = "on" | "off" | "one";

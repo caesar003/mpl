@@ -9,6 +9,7 @@ import RepeatIcon from "@mui/icons-material/Repeat";
 import RepeatOnIcon from "@mui/icons-material/RepeatOn";
 import RepeatOneOnIcon from "@mui/icons-material/RepeatOneOn";
 import StopCircleOutlinedIcon from "@mui/icons-material/StopCircleOutlined";
+import { Repeat } from "@/utils/types";
 
 interface PropInterface {
   shuffle: () => void;
@@ -18,7 +19,7 @@ interface PropInterface {
   goNext: () => void;
   goPrev: () => void;
   toggleRepeat: () => void;
-  repeat: "on" | "one" | "off";
+  repeat: Repeat;
   stop: () => void;
 }
 
@@ -35,9 +36,16 @@ export default function AudioControl(props: PropInterface) {
     stop,
   } = props;
 
+  const ActiveRepeatIcon =
+    repeat === "off"
+      ? RepeatIcon
+      : repeat === "one"
+        ? RepeatOneOnIcon
+        : RepeatOnIcon;
+
   return (
     <div className="py-2 flex items-center justify-center">
-      <IconButton onClick={shuffle} color="warning">
+      <IconButton onClick={shuffle} color="warning" aria-label="Toggle shuffle">
         {shuffleOn ? <ShuffleOnOutlinedIcon /> : <ShuffleOutlinedIcon />}
       </IconButton>
       <IconButton color="warning" onClick={goPrev}>
@@ -60,9 +68,7 @@ export default function AudioControl(props: PropInterface) {
       </IconButton>
 
       <IconButton color="warning" onClick={toggleRepeat}>
-        {repeat === "off" && <RepeatIcon />}
-        {repeat === "one" && <RepeatOneOnIcon />}
-        {repeat === "on" && <RepeatOnIcon />}
+        <ActiveRepeatIcon />
       </IconButton>
     </div>
   );
